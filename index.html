@@ -44,6 +44,7 @@ textarea{min-height:110px;resize:vertical}
 mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 .snip{font-size:13px;color:var(--mu);overflow-wrap:anywhere;margin-top:2px}
 #tip{position:fixed;z-index:20;display:none;max-width:min(380px,80vw);background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
+.at{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd);font-size:14px;overflow-wrap:anywhere}
 .empty{text-align:center;color:var(--mu);padding:40px 10px}
 </style>
 </head>
@@ -75,6 +76,8 @@ mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 <div><label>Duration (days)</label><input type="number" id="f-dur" min="0" step="any" inputmode="decimal"></div>
 </div>
 <label><input type="checkbox" id="f-done"> Done</label>
+<label>Attachments</label><div id="atl"></div>
+<button type="button" id="aadd">+ Add file</button><input type="file" id="fa" multiple hidden>
 <div class="acts">
 <button class="p" id="ok">Save</button>
 <button id="kid">+ Child job</button>
@@ -125,7 +128,7 @@ function fmt(n){return "£"+n.toLocaleString("en-GB",{maximumFractionDigits:2})}
 function endDate(j){if(!j.start||!j.dur)return "";var d=new Date(j.start+"T00:00:00");d.setDate(d.getDate()+Math.ceil(j.dur));return d.toISOString().slice(0,10)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 var q="";
-function hay(j){return [j.title,j.desc,j.pri,j.cost,j.start,j.dur,endDate(j),j.done?"done":""].join("\n").toLowerCase()}
+function hay(j){return [j.title,j.desc,j.pri,j.cost,j.start,j.dur,endDate(j),j.done?"done":"",(j.att||[]).map(function(a){return a.name}).join(" ")].join("\n").toLowerCase()}
 function vis(j){return hay(j).indexOf(q)>-1||j.kids.some(vis)}
 function nMatch(a){return a.reduce(function(n,j){return n+(hay(j).indexOf(q)>-1?1:0)+nMatch(j.kids)},0)}
 function hl(s){if(!q)return esc(s);var l=s.toLowerCase(),o="",i=0,k;while((k=l.indexOf(q,i))>-1){o+=esc(s.slice(i,k))+"<mark>"+esc(s.slice(k,k+q.length))+"</mark>";i=k+q.length}return o+esc(s.slice(i))}
@@ -139,6 +142,7 @@ var t=total(j);
 if(t)h+='<span>'+fmt(t)+(j.kids.length&&+j.cost?' (own '+fmt(+j.cost)+')':'')+'</span>';
 if(j.start)h+='<span>'+j.start+(endDate(j)?' → '+endDate(j):'')+'</span>';
 if(j.dur)h+='<span>'+j.dur+' d</span>';
+if(j.att&&j.att.length)h+='<span>📎 '+j.att.length+'</span>';
 if(j.kids.length)h+='<span>'+j.kids.length+' sub</span>';
 h+='</div>'+snip(j)+'</div></div>';
 if(j.kids.length&&op)h+='<div class="kids">'+j.kids.map(row).join("")+'</div>';
@@ -157,7 +161,7 @@ function movePar(){var s=f("par");if(!s||s.value===(parOf(cur.id)||""))return;va
 r.arr.splice(r.i,1);if(t){t.kids.push(cur);t.open=true}else jobs.push(cur)}
 function openEd(id){var r=find(id);if(!r)return;cur=r.j;
 f("title").value=cur.title;f("desc").value=cur.desc;f("pri").value=cur.pri;f("cost").value=cur.cost||"";f("start").value=cur.start;f("dur").value=cur.dur||"";document.getElementById("f-done").checked=cur.done;
-fillPar();document.getElementById("ed").showModal()}
+fillPar();renderAtt();document.getElementById("ed").showModal()}
 function f(n){return document.getElementById("f-"+n)}
 function commit(){if(!cur)return;cur.title=f("title").value;cur.desc=f("desc").value;cur.pri=f("pri").value;cur.cost=parseFloat(f("cost").value)||0;cur.start=f("start").value;cur.dur=parseFloat(f("dur").value)||0;cur.done=document.getElementById("f-done").checked;movePar();save();render()}
 function setAll(a,v){a.forEach(function(j){j.open=v;setAll(j.kids,v)})}
@@ -165,7 +169,7 @@ document.getElementById("add").onclick=function(){var j=mk();jobs.push(j);save()
 document.getElementById("kid").onclick=function(){commit();var j=mk();cur.kids.push(j);cur.open=true;save();render();openEd(j.id)};
 document.getElementById("ok").onclick=function(){commit();document.getElementById("ed").close()};
 document.getElementById("cx").onclick=function(){document.getElementById("ed").close()};
-document.getElementById("del").onclick=function(){if(!cur)return;if(!confirm("Delete this job and all its child jobs?"))return;var r=find(cur.id);r.arr.splice(r.i,1);cur=null;save();render();document.getElementById("ed").close()};
+document.getElementById("del").onclick=function(){if(!cur)return;if(!confirm("Delete this job and all its child jobs?"))return;(function w(j){(j.att||[]).forEach(delChunks);j.kids.forEach(w)})(cur);var r=find(cur.id);r.arr.splice(r.i,1);cur=null;save();render();document.getElementById("ed").close()};
 function mv(d){commit();var r=find(cur.id),n=r.i+d;if(n<0||n>=r.arr.length)return;var x=r.arr.splice(r.i,1)[0];r.arr.splice(n,0,x);save();render()}
 document.getElementById("up").onclick=function(){mv(-1)};
 document.getElementById("dn").onclick=function(){mv(1)};
@@ -197,6 +201,34 @@ L.addEventListener("mouseover",function(e){var b=e.target.closest(".t b");if(!b)
 L.addEventListener("mousemove",function(e){if(tip.style.display==="block")place(e)});
 L.addEventListener("mouseout",function(e){if(e.target.closest(".t b"))tip.style.display="none"});
 })();
+var CH=700000,MAXB=5*1024*1024;
+function filesCol(){return dref?firebase.firestore().collection("files"):null}
+function fsz(n){return n>1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB"}
+function renderAtt(){var h="";(cur.att||[]).forEach(function(a){h+='<div class="at"><span>'+esc(a.name)+' <i>('+fsz(a.size)+')</i></span><span><button type="button" data-ao="'+a.id+'">Open</button> <button type="button" class="d" data-ar="'+a.id+'">Remove</button></span></div>'});document.getElementById("atl").innerHTML=h||'<div class="meta">No attachments</div>'}
+function readB64(blob){return new Promise(function(ok,no){var r=new FileReader();r.onload=function(){ok(String(r.result).split(",")[1]||"")};r.onerror=no;r.readAsDataURL(blob)})}
+function shrink(file){return new Promise(function(ok){
+if(!/^image\/(jpeg|png|webp)/.test(file.type)){ok(file);return}
+var im=new Image(),u=URL.createObjectURL(file);
+im.onload=function(){var s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(function(b){ok(b&&b.size<file.size?new File([b],file.name.replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"}):file)},"image/jpeg",.82)};
+im.onerror=function(){URL.revokeObjectURL(u);ok(file)};im.src=u})}
+function addFiles(list){
+var col=filesCol();if(!col){alert("Attachments need sync (Firebase) to be set up first.");return}
+Array.prototype.forEach.call(list,function(f0){shrink(f0).then(function(f1){
+if(f1.size>MAXB){alert(f0.name+" is over 5 MB.");return}
+return readB64(f1).then(function(b64){
+var id=uid()+uid(),n=Math.max(1,Math.ceil(b64.length/CH)),b=firebase.firestore().batch();
+for(var i=0;i<n;i++)b.set(col.doc(id+"_"+i),{d:b64.slice(i*CH,(i+1)*CH)});
+return b.commit().then(function(){cur.att=cur.att||[];cur.att.push({id:id,name:f1.name,type:f1.type,size:f1.size,n:n});save();renderAtt();render()})})
+}).catch(function(){alert("Couldn\u2019t attach "+f0.name)})})}
+function openAtt(id){var a=(cur.att||[]).filter(function(x){return x.id===id})[0],col=filesCol();if(!a||!col)return;
+var ps=[];for(var i=0;i<a.n;i++)ps.push(col.doc(id+"_"+i).get());
+Promise.all(ps).then(function(ds){var bin=atob(ds.map(function(d){return d.data().d}).join("")),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+var url=URL.createObjectURL(new Blob([u],{type:a.type||"application/octet-stream"})),l=document.createElement("a");l.href=url;l.download=a.name;document.body.appendChild(l);l.click();l.remove();setTimeout(function(){URL.revokeObjectURL(url)},4000)}).catch(function(){alert("Couldn\u2019t open that attachment.")})}
+function delChunks(a){var col=filesCol();if(!col)return;var b=firebase.firestore().batch();for(var i=0;i<a.n;i++)b.delete(col.doc(a.id+"_"+i));b.commit().catch(function(){})}
+function removeAtt(id){var k=(cur.att||[]).findIndex(function(x){return x.id===id});if(k<0||!confirm("Remove this attachment?"))return;delChunks(cur.att[k]);cur.att.splice(k,1);save();renderAtt();render()}
+document.getElementById("atl").onclick=function(e){var o=e.target.closest("[data-ao]"),r=e.target.closest("[data-ar]");if(o)openAtt(o.dataset.ao);else if(r)removeAtt(r.dataset.ar)};
+document.getElementById("aadd").onclick=function(){document.getElementById("fa").click()};
+document.getElementById("fa").onchange=function(e){var l=e.target.files;if(l&&l.length)addFiles(l);e.target.value=""};
 document.getElementById("qs").oninput=function(e){q=e.target.value.trim().toLowerCase();render()};
 load();render();initSync();
 </script>
