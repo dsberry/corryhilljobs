@@ -1,0 +1,9 @@
+#!/bin/tcsh
+
+set file = "/home/dsb/Downloads/house-jobs-standalone.html"
+sed -e "s/PASTE_API_KEY/AIzaSyDqMDAL9aI94G4A8k24G077pKX-ziZeEKM/" $file > tmp
+sed -e "s/PASTE_AUTH_DOMAIN/corryhill-jobs.firebaseapp.com/" tmp > tmp2
+sed -e "s/PASTE_PROJECT_ID/corryhill-jobs/" tmp2 > tmp3
+sed -e "s/PASTE_APP_ID/1:872866197640:web:b95a75ecd5ca03bd6c2f3d/" tmp3 > index.html
+rm tmp tmp2 tmp3 $file
+
