@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>House Jobs</title>
+<style>
+:root{--bg:#f7f6f2;--sf:#fff;--tx:#1d1d1b;--mu:#6b6a64;--bd:#dedcd4;--ac:#2f6f5e;--ac2:#e3efe9;--hi:#b3402a;--md:#b9801c;--lo:#4a7a9b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161715;--sf:#212320;--tx:#ecebe6;--mu:#9b9a92;--bd:#34362f;--ac:#6fc3aa;--ac2:#25352f;--hi:#e8826c;--md:#e0b14f;--lo:#7fb1d1}}
+:root[data-theme="dark"]{--bg:#161715;--sf:#212320;--tx:#ecebe6;--mu:#9b9a92;--bd:#34362f;--ac:#6fc3aa;--ac2:#25352f;--hi:#e8826c;--md:#e0b14f;--lo:#7fb1d1}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--bd);padding:10px 12px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+h1{font-size:18px;margin:0 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,select,input,textarea{font:inherit;color:var(--tx)}
+button{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:7px 11px;cursor:pointer}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}
+button.d{color:var(--hi)}
+.sum{margin-left:auto;color:var(--mu);font-size:14px}
+main{max-width:860px;margin:0 auto;padding:8px 8px 80px}
+.row{display:flex;align-items:center;gap:6px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:8px;margin:5px 0}
+.row.done .t{text-decoration:line-through;color:var(--mu)}
+.tg{width:26px;height:26px;padding:0;flex:none;text-align:center}
+.tg.none{visibility:hidden}
+.t{flex:1;min-width:0;cursor:pointer}
+.t b{font-weight:600;display:block;overflow-wrap:anywhere}
+.meta{font-size:13px;color:var(--mu);display:flex;flex-wrap:wrap;gap:4px 10px}
+.pri{font-weight:600}
+.pri.High{color:var(--hi)}.pri.Medium{color:var(--md)}.pri.Low{color:var(--lo)}
+.kids{margin-left:16px;border-left:2px solid var(--bd);padding-left:6px}
+input[type=checkbox]{width:20px;height:20px;flex:none}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--sf);color:var(--tx);width:min(560px,94vw);max-height:92vh;padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px}
+textarea{min-height:110px;resize:vertical}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+#qs{width:100%;margin-top:8px;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:8px}
+mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
+.snip{font-size:13px;color:var(--mu);overflow-wrap:anywhere;margin-top:2px}
+#tip{position:fixed;z-index:20;display:none;max-width:min(380px,80vw);background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
+.empty{text-align:center;color:var(--mu);padding:40px 10px}
+</style>
+</head>
+<body>
+<header>
+<h1>House jobs</h1>
+<div class="bar">
+<button class="p" id="add">+ Job</button>
+<button id="exp">Expand all</button>
+<button id="col">Collapse all</button>
+<button id="sv">Save file</button>
+<button id="ld">Load file</button>
+<input type="file" id="fi" accept=".txt,.json,text/plain,application/json" hidden>
+<span class="sum"><span id="st"></span> · <span id="sum"></span></span>
+</div>
+<input type="search" id="qs" placeholder="Search all jobs…" autocomplete="off">
+</header>
+<main id="list"></main>
+<div id="tip"></div>
+
+<dialog id="ed">
+<label>Title</label><input type="text" id="f-title">
+<label>Parent job (change to move this job)</label><select id="f-par"></select>
+<label>Description</label><textarea id="f-desc"></textarea>
+<div class="g">
+<div><label>Priority</label><select id="f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+<div><label>Cost (£)</label><input type="number" id="f-cost" min="0" step="any" inputmode="decimal"></div>
+<div><label>Start date</label><input type="date" id="f-start"></div>
+<div><label>Duration (days)</label><input type="number" id="f-dur" min="0" step="any" inputmode="decimal"></div>
+</div>
+<label><input type="checkbox" id="f-done"> Done</label>
+<div class="acts">
+<button class="p" id="ok">Save</button>
+<button id="kid">+ Child job</button>
+<button id="up">Move up</button>
+<button id="dn">Move down</button>
+<button class="d" id="del">Delete</button>
+<button id="cx">Close</button>
+</div>
+</dialog>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+var KEY="househobs.v1",jobs=[],cur=null,parentOf=null;
+function uid(){return Math.random().toString(36).slice(2,10)}
+function load(){try{var s=localStorage.getItem(KEY);if(s)jobs=JSON.parse(s)}catch(e){}}
+var dref=null,CID=uid(),pushT=null,loadT=null,pending=null,first=true;
+function setSt(t){document.getElementById("st").textContent=t}
+function stamp(){try{localStorage.setItem(KEY+".at",String(Date.now()))}catch(e){}}
+function localAt(){try{return +localStorage.getItem(KEY+".at")||0}catch(e){return 0}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(jobs))}catch(e){}stamp();queuePush()}
+function queuePush(){if(!dref)return;setSt("Saving…");clearTimeout(pushT);pushT=setTimeout(push,700)}
+function push(){if(!dref)return;dref.set({tree:JSON.stringify(jobs),at:localAt(),by:CID}).then(function(){setSt("Synced")},function(){setSt("Not synced")})}
+function adopt(d){try{var t=JSON.parse(d.tree);if(!Array.isArray(t))return;jobs=t;try{localStorage.setItem(KEY,d.tree);localStorage.setItem(KEY+".at",String(d.at||0))}catch(e){}render()}catch(e){}}
+function onRemote(snap){
+if(snap.metadata.hasPendingWrites)return;
+clearTimeout(loadT);
+var d=snap.exists?snap.data():null,wasFirst=first;first=false;
+if(!d){if(jobs.length)push();else setSt("Synced");return}
+if(d.by===CID){setSt("Synced");return}
+if(wasFirst&&localAt()>(d.at||0)){push();return}
+if(document.getElementById("ed").open){pending=d;return}
+adopt(d);setSt("Synced")}
+var FIREBASE_CONFIG={apiKey:"AIzaSyDqMDAL9aI94G4A8k24G077pKX-ziZeEKM",authDomain:"corryhill-jobs.firebaseapp.com",projectId:"corryhill-jobs",appId:"1:872866197640:web:b95a75ecd5ca03bd6c2f3d"};
+function initSync(){
+if(!window.firebase||/PASTE/.test(FIREBASE_CONFIG.projectId)){setSt("Local only (not configured)");return}
+setSt("Connecting…");
+loadT=setTimeout(function(){setSt("Can’t reach sync")},10000);
+try{firebase.initializeApp(FIREBASE_CONFIG);dref=firebase.firestore().collection("app").doc("jobs");
+dref.onSnapshot(onRemote,function(){clearTimeout(loadT);setSt("Sync error")})}catch(e){clearTimeout(loadT);setSt("Sync error")}}
+document.addEventListener("DOMContentLoaded",function(){document.getElementById("ed").addEventListener("close",function(){if(pending&&localAt()<(pending.at||0)){adopt(pending);setSt("Synced")}pending=null})});
+function mk(){return{id:uid(),title:"New job",desc:"",pri:"Medium",cost:0,start:"",dur:0,done:false,open:true,kids:[]}}
+function find(id,arr,par){arr=arr||jobs;for(var i=0;i<arr.length;i++){if(arr[i].id===id)return{j:arr[i],arr:arr,i:i};var r=find(id,arr[i].kids);if(r)return r}return null}
+function total(j){return (+j.cost||0)+j.kids.reduce(function(a,k){return a+total(k)},0)}
+function count(arr){return arr.reduce(function(a,j){return a+1+count(j.kids)},0)}
+function fmt(n){return "£"+n.toLocaleString("en-GB",{maximumFractionDigits:2})}
+function endDate(j){if(!j.start||!j.dur)return "";var d=new Date(j.start+"T00:00:00");d.setDate(d.getDate()+Math.ceil(j.dur));return d.toISOString().slice(0,10)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+var q="";
+function hay(j){return [j.title,j.desc,j.pri,j.cost,j.start,j.dur,endDate(j),j.done?"done":""].join("\n").toLowerCase()}
+function vis(j){return hay(j).indexOf(q)>-1||j.kids.some(vis)}
+function nMatch(a){return a.reduce(function(n,j){return n+(hay(j).indexOf(q)>-1?1:0)+nMatch(j.kids)},0)}
+function hl(s){if(!q)return esc(s);var l=s.toLowerCase(),o="",i=0,k;while((k=l.indexOf(q,i))>-1){o+=esc(s.slice(i,k))+"<mark>"+esc(s.slice(k,k+q.length))+"</mark>";i=k+q.length}return o+esc(s.slice(i))}
+function snip(j){if(!q||!j.desc)return "";var k=j.desc.toLowerCase().indexOf(q);if(k<0)return "";var s=Math.max(0,k-30),e=Math.min(j.desc.length,k+q.length+50);return '<div class="snip">'+(s?"…":"")+hl(j.desc.slice(s,e).replace(/\s+/g," "))+(e<j.desc.length?"…":"")+'</div>'}
+function row(j){
+if(q&&!vis(j))return "";
+var op=j.open||!!q;
+var h='<div class="row'+(j.done?' done':'')+'"><button class="tg'+(j.kids.length?'':' none')+'" data-t="'+j.id+'">'+(op?'▾':'▸')+'</button>'
++'<div class="t" data-e="'+j.id+'"><b>'+hl(j.title||"(untitled)")+'</b><div class="meta"><span class="pri '+j.pri+'">'+j.pri+'</span>';
+var t=total(j);
+if(t)h+='<span>'+fmt(t)+(j.kids.length&&+j.cost?' (own '+fmt(+j.cost)+')':'')+'</span>';
+if(j.start)h+='<span>'+j.start+(endDate(j)?' → '+endDate(j):'')+'</span>';
+if(j.dur)h+='<span>'+j.dur+' d</span>';
+if(j.kids.length)h+='<span>'+j.kids.length+' sub</span>';
+h+='</div>'+snip(j)+'</div></div>';
+if(j.kids.length&&op)h+='<div class="kids">'+j.kids.map(row).join("")+'</div>';
+return h}
+function render(){
+var tp=document.getElementById("tip");if(tp)tp.style.display="none";
+var el=document.getElementById("list");
+var html=jobs.map(row).join("");el.innerHTML=!jobs.length?'<div class="empty">No jobs yet. Tap “+ Job” to add your first.</div>':(html||'<div class="empty">No jobs match “'+esc(q)+'”.</div>');
+var done=0;(function w(a){a.forEach(function(j){if(j.done)done++;w(j.kids)})})(jobs);
+document.getElementById("sum").textContent=q?(nMatch(jobs)+" matching"):count(jobs)+" jobs · "+done+" done · "+fmt(jobs.reduce(function(a,j){return a+total(j)},0))}
+function parOf(id,arr,pid){arr=arr||jobs;for(var i=0;i<arr.length;i++){if(arr[i].id===id)return pid||"";var r=parOf(id,arr[i].kids,arr[i].id);if(r!==null)return r}return null}
+function fillPar(){var h='<option value="">(Top level)</option>';
+(function w(a,d){a.forEach(function(j){if(j.id===cur.id)return;h+='<option value="'+j.id+'">'+"\u00a0\u00a0".repeat(d)+(d?"\u2514 ":"")+esc(j.title||"(untitled)")+'</option>';w(j.kids,d+1)})})(jobs,0);
+f("par").innerHTML=h;f("par").value=parOf(cur.id)||""}
+function movePar(){var s=f("par");if(!s||s.value===(parOf(cur.id)||""))return;var r=find(cur.id),t=null;if(s.value){var x=find(s.value);if(!x)return;t=x.j}
+r.arr.splice(r.i,1);if(t){t.kids.push(cur);t.open=true}else jobs.push(cur)}
+function openEd(id){var r=find(id);if(!r)return;cur=r.j;
+f("title").value=cur.title;f("desc").value=cur.desc;f("pri").value=cur.pri;f("cost").value=cur.cost||"";f("start").value=cur.start;f("dur").value=cur.dur||"";document.getElementById("f-done").checked=cur.done;
+fillPar();document.getElementById("ed").showModal()}
+function f(n){return document.getElementById("f-"+n)}
+function commit(){if(!cur)return;cur.title=f("title").value;cur.desc=f("desc").value;cur.pri=f("pri").value;cur.cost=parseFloat(f("cost").value)||0;cur.start=f("start").value;cur.dur=parseFloat(f("dur").value)||0;cur.done=document.getElementById("f-done").checked;movePar();save();render()}
+function setAll(a,v){a.forEach(function(j){j.open=v;setAll(j.kids,v)})}
+document.getElementById("add").onclick=function(){var j=mk();jobs.push(j);save();render();openEd(j.id)};
+document.getElementById("kid").onclick=function(){commit();var j=mk();cur.kids.push(j);cur.open=true;save();render();openEd(j.id)};
+document.getElementById("ok").onclick=function(){commit();document.getElementById("ed").close()};
+document.getElementById("cx").onclick=function(){document.getElementById("ed").close()};
+document.getElementById("del").onclick=function(){if(!cur)return;if(!confirm("Delete this job and all its child jobs?"))return;var r=find(cur.id);r.arr.splice(r.i,1);cur=null;save();render();document.getElementById("ed").close()};
+function mv(d){commit();var r=find(cur.id),n=r.i+d;if(n<0||n>=r.arr.length)return;var x=r.arr.splice(r.i,1)[0];r.arr.splice(n,0,x);save();render()}
+document.getElementById("up").onclick=function(){mv(-1)};
+document.getElementById("dn").onclick=function(){mv(1)};
+document.getElementById("exp").onclick=function(){setAll(jobs,true);save();render()};
+document.getElementById("col").onclick=function(){setAll(jobs,false);save();render()};
+document.getElementById("list").onclick=function(e){
+var t=e.target.closest("[data-t]"),c=e.target.closest("[data-c]"),ed=e.target.closest("[data-e]");
+if(t){var r=find(t.dataset.t);r.j.open=!r.j.open;save();render()}
+else if(c){var r2=find(c.dataset.c);r2.j.done=c.checked;save();render()}
+else if(ed)openEd(ed.dataset.e)};
+function fixIds(a){a.forEach(function(j){j.id=j.id||uid();j.kids=j.kids||[];fixIds(j.kids)});return a}
+document.getElementById("sv").onclick=function(){
+var n="house-jobs-"+new Date().toISOString().slice(0,10)+".txt",b=new Blob([JSON.stringify(jobs,null,1)],{type:"text/plain"}),l=document.createElement("a");
+l.href=URL.createObjectURL(b);l.download=n;document.body.appendChild(l);l.click();l.remove();setTimeout(function(){URL.revokeObjectURL(l.href)},1000)};
+document.getElementById("ld").onclick=function(){document.getElementById("fi").click()};
+document.getElementById("fi").onchange=function(e){
+var fl=e.target.files[0];e.target.value="";if(!fl)return;
+var r=new FileReader();
+r.onload=function(){
+try{var d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;fixIds(d);
+if(!confirm("Replace all current jobs with the "+count(d)+" jobs in “"+fl.name+"”?"))return;
+jobs=d;save();render()}
+catch(x){alert("That file doesn’t look like a valid jobs file.")}};
+r.readAsText(fl)};
+(function(){
+var tip=document.getElementById("tip"),L=document.getElementById("list");
+function place(e){var w=tip.offsetWidth,h=tip.offsetHeight,x=e.clientX+14,y=e.clientY+16;if(x+w>innerWidth-8)x=Math.max(8,innerWidth-w-8);if(y+h>innerHeight-8)y=Math.max(8,e.clientY-h-12);tip.style.left=x+"px";tip.style.top=y+"px"}
+L.addEventListener("mouseover",function(e){var b=e.target.closest(".t b");if(!b)return;var r=find(b.closest("[data-e]").dataset.e);if(!r||!r.j.desc||!r.j.desc.trim())return;var d=r.j.desc;tip.textContent=d.length>600?d.slice(0,600)+"…":d;tip.style.display="block";place(e)});
+L.addEventListener("mousemove",function(e){if(tip.style.display==="block")place(e)});
+L.addEventListener("mouseout",function(e){if(e.target.closest(".t b"))tip.style.display="none"});
+})();
+document.getElementById("qs").oninput=function(e){q=e.target.value.trim().toLowerCase();render()};
+load();render();initSync();
+</script>
+</body>
+</html>
