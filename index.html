@@ -43,8 +43,14 @@ textarea{min-height:110px;resize:vertical}
 #qs{width:100%;margin-top:8px;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:8px}
 mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 .snip{font-size:13px;color:var(--mu);overflow-wrap:anywhere;margin-top:2px}
-#tip{position:fixed;z-index:20;display:none;max-width:min(380px,80vw);background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
+#tip{position:fixed;z-index:20;display:none;max-width:min(380px,80vw);background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:14px;overflow-wrap:anywhere;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
 .at{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd);font-size:14px;overflow-wrap:anywhere}
+.lk{padding:1px 8px;font-size:12px;margin-left:8px}
+.prev{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px;min-height:110px;overflow-wrap:anywhere;font-size:15px}
+.prev p,#tip p{margin:0 0 5px}.prev ul,#tip ul{margin:2px 0 5px;padding-left:20px}
+.prev a,#tip a{color:var(--ac);text-decoration:underline}
+.prev code,#tip code{background:var(--ac2);padding:0 3px;border-radius:3px}
+.mh{font-weight:700;margin:4px 0 3px}
 .empty{text-align:center;color:var(--mu);padding:40px 10px}
 </style>
 </head>
@@ -68,7 +74,7 @@ mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 <dialog id="ed">
 <label>Title</label><input type="text" id="f-title">
 <label>Parent job (change to move this job)</label><select id="f-par"></select>
-<label>Description</label><textarea id="f-desc"></textarea>
+<label>Description <button type="button" id="mdt" class="lk">Preview</button></label><textarea id="f-desc" placeholder="Supports **bold**, *italic*, - bullet lists, # headings, [text](https://link) and plain web addresses"></textarea><div id="f-prev" class="prev" hidden></div>
 <div class="g">
 <div><label>Priority</label><select id="f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
 <div><label>Cost (£)</label><input type="number" id="f-cost" min="0" step="any" inputmode="decimal"></div>
@@ -159,9 +165,23 @@ function fillPar(){var h='<option value="">(Top level)</option>';
 f("par").innerHTML=h;f("par").value=parOf(cur.id)||""}
 function movePar(){var s=f("par");if(!s||s.value===(parOf(cur.id)||""))return;var r=find(cur.id),t=null;if(s.value){var x=find(s.value);if(!x)return;t=x.j}
 r.arr.splice(r.i,1);if(t){t.kids.push(cur);t.open=true}else jobs.push(cur)}
+function A(u,t){return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+t+'</a>'}
+function inl(t){var k=[];
+t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,function(m,a,u){k.push(A(u,a));return "\u0000"+(k.length-1)+"\u0000"});
+t=t.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g,function(u){k.push(A(u,u));return "\u0000"+(k.length-1)+"\u0000"});
+t=t.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>").replace(/(^|[^*])\*([^*\s][^*]*)\*/g,"$1<i>$2</i>").replace(/`([^`]+)`/g,"<code>$1</code>");
+return t.replace(/\u0000(\d+)\u0000/g,function(m,i){return k[i]})}
+function md(src){var L=esc(src).split("\n"),o="",ul=false;
+L.forEach(function(l){var m=/^\s*[-*]\s+(.*)/.exec(l);
+if(m){if(!ul){o+="<ul>";ul=true}o+="<li>"+inl(m[1])+"</li>";return}
+if(ul){o+="</ul>";ul=false}
+var h=/^#{1,3}\s+(.*)/.exec(l);
+if(h)o+='<div class="mh">'+inl(h[1])+"</div>";else if(l.trim())o+="<p>"+inl(l)+"</p>"});
+return o+(ul?"</ul>":"")}
+function showEdit(){f("desc").hidden=false;document.getElementById("f-prev").hidden=true;document.getElementById("mdt").textContent="Preview"}
 function openEd(id){var r=find(id);if(!r)return;cur=r.j;
 f("title").value=cur.title;f("desc").value=cur.desc;f("pri").value=cur.pri;f("cost").value=cur.cost||"";f("start").value=cur.start;f("dur").value=cur.dur||"";document.getElementById("f-done").checked=cur.done;
-fillPar();renderAtt();document.getElementById("ed").showModal()}
+fillPar();renderAtt();showEdit();document.getElementById("ed").showModal()}
 function f(n){return document.getElementById("f-"+n)}
 function commit(){if(!cur)return;cur.title=f("title").value;cur.desc=f("desc").value;cur.pri=f("pri").value;cur.cost=parseFloat(f("cost").value)||0;cur.start=f("start").value;cur.dur=parseFloat(f("dur").value)||0;cur.done=document.getElementById("f-done").checked;movePar();save();render()}
 function setAll(a,v){a.forEach(function(j){j.open=v;setAll(j.kids,v)})}
@@ -197,7 +217,7 @@ r.readAsText(fl)};
 (function(){
 var tip=document.getElementById("tip"),L=document.getElementById("list");
 function place(e){var w=tip.offsetWidth,h=tip.offsetHeight,x=e.clientX+14,y=e.clientY+16;if(x+w>innerWidth-8)x=Math.max(8,innerWidth-w-8);if(y+h>innerHeight-8)y=Math.max(8,e.clientY-h-12);tip.style.left=x+"px";tip.style.top=y+"px"}
-L.addEventListener("mouseover",function(e){var b=e.target.closest(".t b");if(!b)return;var r=find(b.closest("[data-e]").dataset.e);if(!r||!r.j.desc||!r.j.desc.trim())return;var d=r.j.desc;tip.textContent=d.length>600?d.slice(0,600)+"…":d;tip.style.display="block";place(e)});
+L.addEventListener("mouseover",function(e){var b=e.target.closest(".t b");if(!b)return;var r=find(b.closest("[data-e]").dataset.e);if(!r||!r.j.desc||!r.j.desc.trim())return;var d=r.j.desc;tip.innerHTML=md(d.length>600?d.slice(0,600)+"…":d);tip.style.display="block";place(e)});
 L.addEventListener("mousemove",function(e){if(tip.style.display==="block")place(e)});
 L.addEventListener("mouseout",function(e){if(e.target.closest(".t b"))tip.style.display="none"});
 })();
@@ -229,6 +249,7 @@ function removeAtt(id){var k=(cur.att||[]).findIndex(function(x){return x.id===i
 document.getElementById("atl").onclick=function(e){var o=e.target.closest("[data-ao]"),r=e.target.closest("[data-ar]");if(o)openAtt(o.dataset.ao);else if(r)removeAtt(r.dataset.ar)};
 document.getElementById("aadd").onclick=function(){document.getElementById("fa").click()};
 document.getElementById("fa").onchange=function(e){var l=e.target.files;if(l&&l.length)addFiles(l);e.target.value=""};
+document.getElementById("mdt").onclick=function(){var d=f("desc"),p=document.getElementById("f-prev");if(d.hidden){showEdit()}else{p.innerHTML=md(d.value)||'<span class="meta">Nothing to preview</span>';d.hidden=true;p.hidden=false;this.textContent="Edit"}};
 document.getElementById("qs").oninput=function(e){q=e.target.value.trim().toLowerCase();render()};
 load();render();initSync();
 </script>
