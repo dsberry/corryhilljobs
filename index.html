@@ -51,6 +51,9 @@ mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 .prev a,#tip a{color:var(--ac);text-decoration:underline}
 .prev code,#tip code{background:var(--ac2);padding:0 3px;border-radius:3px}
 .mh{font-weight:700;margin:4px 0 3px}
+#kl a{color:var(--ac);text-decoration:underline;cursor:pointer}
+#kl a.dn{text-decoration:line-through}
+#pl{color:var(--ac);text-decoration:underline;cursor:pointer;font-size:14px}
 .empty{text-align:center;color:var(--mu);padding:40px 10px}
 </style>
 </head>
@@ -72,8 +75,10 @@ mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 <div id="tip"></div>
 
 <dialog id="ed">
+<div id="psec" hidden><a href="#" id="pl"></a></div>
 <label>Title</label><input type="text" id="f-title">
 <label>Parent job (change to move this job)</label><select id="f-par"></select>
+<div id="ksec" hidden><label>Sub-jobs</label><div id="kl"></div></div>
 <label>Description <button type="button" id="mdt" class="lk">Preview</button></label><textarea id="f-desc" placeholder="Supports **bold**, *italic*, - bullet lists, # headings, [text](https://link) and plain web addresses"></textarea><div id="f-prev" class="prev" hidden></div>
 <div class="g">
 <div><label>Priority</label><select id="f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
@@ -179,9 +184,12 @@ var h=/^#{1,3}\s+(.*)/.exec(l);
 if(h)o+='<div class="mh">'+inl(h[1])+"</div>";else if(l.trim())o+="<p>"+inl(l)+"</p>"});
 return o+(ul?"</ul>":"")}
 function showEdit(){f("desc").hidden=false;document.getElementById("f-prev").hidden=true;document.getElementById("mdt").textContent="Preview"}
+function renderKids(){var h="";cur.kids.forEach(function(k){h+='<div><a href="#" data-k="'+k.id+'"'+(k.done?' class="dn"':'')+'>'+esc(k.title||"(untitled)")+'</a>'+(k.kids.length?' <span class="meta">('+k.kids.length+' sub)</span>':'')+'</div>'});document.getElementById("ksec").hidden=!h;document.getElementById("kl").innerHTML=h;
+var pid=parOf(cur.id),pr=pid?find(pid):null,ps=document.getElementById("psec");
+ps.hidden=!pr;if(pr){var pl=document.getElementById("pl");pl.textContent="\u2191 Parent: "+(pr.j.title||"(untitled)");pl.dataset.k=pid}}
 function openEd(id){var r=find(id);if(!r)return;cur=r.j;
 f("title").value=cur.title;f("desc").value=cur.desc;f("pri").value=cur.pri;f("cost").value=cur.cost||"";f("start").value=cur.start;f("dur").value=cur.dur||"";document.getElementById("f-done").checked=cur.done;
-fillPar();renderAtt();showEdit();document.getElementById("ed").showModal()}
+fillPar();renderAtt();showEdit();renderKids();var dg=document.getElementById("ed");if(!dg.open)dg.showModal();dg.scrollTop=0}
 function f(n){return document.getElementById("f-"+n)}
 function commit(){if(!cur)return;cur.title=f("title").value;cur.desc=f("desc").value;cur.pri=f("pri").value;cur.cost=parseFloat(f("cost").value)||0;cur.start=f("start").value;cur.dur=parseFloat(f("dur").value)||0;cur.done=document.getElementById("f-done").checked;movePar();save();render()}
 function setAll(a,v){a.forEach(function(j){j.open=v;setAll(j.kids,v)})}
@@ -250,6 +258,8 @@ document.getElementById("atl").onclick=function(e){var o=e.target.closest("[data
 document.getElementById("aadd").onclick=function(){document.getElementById("fa").click()};
 document.getElementById("fa").onchange=function(e){var l=e.target.files;if(l&&l.length)addFiles(l);e.target.value=""};
 document.getElementById("mdt").onclick=function(){var d=f("desc"),p=document.getElementById("f-prev");if(d.hidden){showEdit()}else{p.innerHTML=md(d.value)||'<span class="meta">Nothing to preview</span>';d.hidden=true;p.hidden=false;this.textContent="Edit"}};
+document.getElementById("pl").onclick=function(e){e.preventDefault();var id=this.dataset.k;commit();openEd(id)};
+document.getElementById("kl").onclick=function(e){var a=e.target.closest("[data-k]");if(!a)return;e.preventDefault();var id=a.dataset.k;commit();openEd(id)};
 document.getElementById("qs").oninput=function(e){q=e.target.value.trim().toLowerCase();render()};
 load();render();initSync();
 </script>
