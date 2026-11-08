@@ -83,7 +83,7 @@ mark{background:var(--md);color:#000;border-radius:3px;padding:0 1px}
 <div id="ksec" hidden><label>Sub-jobs</label><div id="kl"></div></div>
 <label>Description <button type="button" id="mdt" class="lk">Preview</button></label><textarea id="f-desc" placeholder="Supports **bold**, *italic*, - bullet lists, # headings, [text](https://link) and plain web addresses"></textarea><div id="f-prev" class="prev" hidden></div>
 <div class="g">
-<div><label>Priority</label><select id="f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+<div><label>Priority</label><select id="f-pri"><option>High</option><option selected>Medium</option><option>Low</option></select><div id="prih" class="meta" hidden>Set automatically: the highest priority of its child jobs.</div></div>
 <div><label>Cost (£)</label><input type="number" id="f-cost" min="0" step="any" inputmode="decimal"></div>
 <div><label>Start date</label><input type="date" id="f-start"></div>
 <div><label>Duration (days)</label><input type="number" id="f-dur" min="0" step="any" inputmode="decimal"></div>
@@ -113,7 +113,7 @@ var dref=null,CID=uid(),pushT=null,loadT=null,pending=null,first=true;
 function setSt(t){document.getElementById("st").textContent=t}
 function stamp(){try{localStorage.setItem(KEY+".at",String(Date.now()))}catch(e){}}
 function localAt(){try{return +localStorage.getItem(KEY+".at")||0}catch(e){return 0}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(jobs))}catch(e){}stamp();queuePush()}
+function save(){fixPri(jobs);try{localStorage.setItem(KEY,JSON.stringify(jobs))}catch(e){}stamp();queuePush()}
 function queuePush(){if(!dref)return;setSt("Saving…");clearTimeout(pushT);pushT=setTimeout(push,700)}
 function push(){if(!dref)return;dref.set({tree:JSON.stringify(jobs),at:localAt(),by:CID}).then(function(){setSt("Synced")},function(){setSt("Not synced")})}
 function adopt(d){try{var t=JSON.parse(d.tree);if(!Array.isArray(t))return;jobs=t;try{localStorage.setItem(KEY,d.tree);localStorage.setItem(KEY+".at",String(d.at||0))}catch(e){}render()}catch(e){}}
@@ -163,11 +163,14 @@ h+='</div>'+snip(j)+'</div></div>';
 if(j.kids.length&&op)h+='<div class="kids">'+j.kids.map(row).join("")+'</div>';
 return h}
 function render(){
+fixPri(jobs);
 var tp=document.getElementById("tip");if(tp)tp.style.display="none";
 var el=document.getElementById("list");
 var html=jobs.map(row).join("");el.innerHTML=!jobs.length?'<div class="empty">No jobs yet. Tap “+ Job” to add your first.</div>':(html||'<div class="empty">No jobs match “'+esc(q)+'”.</div>');
 var done=0;(function w(a){a.forEach(function(j){if(j.done)done++;w(j.kids)})})(jobs);
 document.getElementById("sum").textContent=q?(nMatch(jobs)+" matching"):count(jobs)+" jobs · "+done+" done · "+fmt(jobs.reduce(function(a,j){return a+total(j)},0))}
+var PR={High:3,Medium:2,Low:1};
+function fixPri(a){a.forEach(function(j){fixPri(j.kids);if(j.kids.length){var m=1;j.kids.forEach(function(k){m=Math.max(m,PR[k.pri]||2)});j.pri=["","Low","Medium","High"][m]}})}
 function parOf(id,arr,pid){arr=arr||jobs;for(var i=0;i<arr.length;i++){if(arr[i].id===id)return pid||"";var r=parOf(id,arr[i].kids,arr[i].id);if(r!==null)return r}return null}
 function fillPar(){var h='<option value="">(Top level)</option>';
 (function w(a,d){a.forEach(function(j){if(j.id===cur.id)return;h+='<option value="'+j.id+'">'+"\u00a0\u00a0".repeat(d)+(d?"\u2514 ":"")+esc(j.title||"(untitled)")+'</option>';w(j.kids,d+1)})})(jobs,0);
@@ -201,7 +204,7 @@ var o='<option value="">+ Add a prerequisite\u2026</option>';
 document.getElementById("dsel").innerHTML=o}
 function openEd(id){var r=find(id);if(!r)return;cur=r.j;
 f("title").value=cur.title;f("desc").value=cur.desc;f("pri").value=cur.pri;f("cost").value=cur.cost||"";f("start").value=cur.start;f("dur").value=cur.dur||"";document.getElementById("f-done").checked=cur.done;
-fillPar();renderAtt();showEdit();renderKids();renderDeps();var dg=document.getElementById("ed");if(!dg.open)dg.showModal();dg.scrollTop=0}
+fillPar();renderAtt();showEdit();renderKids();renderDeps();f("pri").disabled=cur.kids.length>0;document.getElementById("prih").hidden=!cur.kids.length;var dg=document.getElementById("ed");if(!dg.open)dg.showModal();dg.scrollTop=0}
 function f(n){return document.getElementById("f-"+n)}
 function commit(){if(!cur)return;cur.title=f("title").value;cur.desc=f("desc").value;cur.pri=f("pri").value;cur.cost=parseFloat(f("cost").value)||0;cur.start=f("start").value;cur.dur=parseFloat(f("dur").value)||0;cur.done=document.getElementById("f-done").checked;movePar();save();render()}
 function setAll(a,v){a.forEach(function(j){j.open=v;setAll(j.kids,v)})}
